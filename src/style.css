@@ -1,0 +1,33 @@
+:root{
+  --bg:#0f172a; --card:#111827; --muted:#94a3b8; --text:#e5e7eb; --accent:#22d3ee;
+  --radius:12px;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; font-family:system-ui,Segoe UI,Roboto,Arial; color:var(--text);
+  background:linear-gradient(180deg,#0b1020,#0f172a 40%);
+}
+.container{max-width:880px;margin:40px auto;padding:0 16px}
+.card{
+  background:radial-gradient(80% 120% at 10% 0%,#0b132e,#0b1226 40%,#090f1f 100%), var(--card);
+  border:1px solid rgba(255,255,255,.06);
+  border-radius:var(--radius); padding:20px; box-shadow:0 10px 30px rgba(0,0,0,.35);
+}
+h1,h2{margin:.2em 0 0.6em}
+label{display:block;margin:12px 0 6px;color:var(--muted)}
+input[type=text],input[type=password],input[type=email],textarea{
+  width:100%; padding:12px 14px; border-radius:10px; border:1px solid rgba(255,255,255,.08);
+  background:#0b1222; color:var(--text); outline:none;
+}
+textarea{min-height:160px}
+.btn{
+  display:inline-block; margin-top:12px; padding:10px 16px; border-radius:12px;
+  background:linear-gradient(135deg,#22d3ee,#60a5fa); color:#001018; font-weight:700; border:0; cursor:pointer;
+  box-shadow:0 10px 20px rgba(34,211,238,.3), inset 0 1px 0 rgba(255,255,255,.3);
+}
+.btn:hover{transform:translateY(-1px)}
+.list{list-style:none;padding:0;margin:0}
+.list li{padding:12px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.alert{padding:12px;border-radius:10px;background:#122033;color:#a5b4fc;border:1px solid rgba(99,102,241,.25)}
+.meta{color:var(--muted);font-size:.9rem}
+.attach img{max-width:220px;height:auto;border:1px solid rgba(255,255,255,.1);border-radius:8px}
