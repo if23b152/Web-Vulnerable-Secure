@@ -1,9 +1,6 @@
 <?php
 require 'cookies.php';
-
-if (empty($_SESSION['csrf'])) {
-  $_SESSION['csrf'] = bin2hex(random_bytes(32));
-}
+require_login();
 
 $flash = $_SESSION['flash'] ?? null; unset($_SESSION['flash']);
 $old   = $_SESSION['old']   ?? [];  unset($_SESSION['old']);
@@ -33,7 +30,7 @@ $old   = $_SESSION['old']   ?? [];  unset($_SESSION['old']);
   <?php endif; ?>
 
   <form action="send_email.php" method="post" enctype="multipart/form-data" novalidate>
-  <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>">
+  <?= csrf_field() ?>
 
   <label>Empfänger (Username)</label>
   <input type="text" name="to" required value="<?= htmlspecialchars($old['to'] ?? '') ?>">

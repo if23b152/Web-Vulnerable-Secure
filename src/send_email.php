@@ -2,10 +2,17 @@
 require 'cookies.php';
 require __DIR__ . '/db_queries/db.php';
 
-$UPLOAD_DIR  = __DIR__ . '/uploads';
+// Uploads möglichst außerhalb des Webroots ablegen (APP_UPLOAD_DIR aus docker-compose)
+$UPLOAD_DIR  = upload_dir();
 $MAX_FILES   = 3;
 $MAX_BYTES   = 10 * 1024 * 1024;       
 $ALLOWED_MIME = ['application/pdf','image/png','image/jpeg','text/plain'];
+$ALLOWED_EXT  = [
+    'application/pdf' => ['pdf'],
+    'image/png'       => ['png'],
+    'image/jpeg'      => ['jpg', 'jpeg'],
+    'text/plain'      => ['txt'],
+];
 
 function fail_redirect(string $msg, string $back = 'compose.php', array $old = []): void {
     $_SESSION['flash'] = $msg;
@@ -14,25 +21,34 @@ function fail_redirect(string $msg, string $back = 'compose.php', array $old = [
     exit;
 }
 
-if (!empty($_SESSION['csrf'])) {
-    $csrf = $_POST['csrf'] ?? '';
-    if (!$csrf || !hash_equals($_SESSION['csrf'], $csrf)) {
-        fail_redirect('Ungültiger CSRF-Token.');
-    }
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header('Location: compose.php');
+    exit;
 }
 
-$senderId = $_SESSION['user_id'] ?? null;
-if (!$senderId) {
-    fail_redirect('Bitte zuerst einloggen.');
+$senderId = (int)($_SESSION['user_id'] ?? 0);
+if (!$senderId || empty($_SESSION['logged_in'])) {
+    fail_redirect('Bitte zuerst einloggen.', 'login.php');
 }
 
-$toUsername = trim($_POST['to'] ?? '');
-$subject    = trim($_POST['subject'] ?? '');
-$body       = trim($_POST['body'] ?? '');
+// CSRF-Token wird IMMER geprüft (vorher nur, wenn bereits ein Token in der Session lag)
+if (!csrf_valid()) {
+    fail_redirect('Ungültiger CSRF-Token.');
+}
+
+$toUsername = trim((string)($_POST['to'] ?? ''));
+$subject    = trim((string)($_POST['subject'] ?? ''));
+$body       = trim((string)($_POST['body'] ?? ''));
 
 if ($toUsername === '' || $subject === '' || $body === '') {
-    fail_redirect('Bitte alle Pflichtfelder ausfüllen.', 'index.php', [
+    fail_redirect('Bitte alle Pflichtfelder ausfüllen.', 'compose.php', [
         'to' => $toUsername, 'subject' => $subject, 'body' => $body
+    ]);
+}
+
+if (mb_strlen($subject) > 255 || mb_strlen($body) > 20000) {
+    fail_redirect('Betreff (max. 255) oder Nachricht (max. 20000 Zeichen) zu lang.', 'compose.php', [
+        'to' => $toUsername, 'subject' => mb_substr($subject, 0, 255), 'body' => mb_substr($body, 0, 20000)
     ]);
 }
 
@@ -47,7 +63,8 @@ try {
     }
     $recipientId = (int)$rec['user_id'];
 } catch (PDOException $e) {
-    fail_redirect('DB-Fehler (Empfänger): ' . htmlspecialchars($e->getMessage()));
+    error_log('send_email recipient lookup: ' . $e->getMessage());
+    fail_redirect('Interner Fehler. Bitte später erneut versuchen.');
 }
 
 if (!is_dir($UPLOAD_DIR)) {
@@ -83,15 +100,30 @@ if (!empty($_FILES['files']['name']) && is_array($_FILES['files']['name'])) {
             fail_redirect("Datei zu groß: „{$orig}“ (max 10 MB).",
                 'compose.php', ['to'=>$toUsername,'subject'=>$subject,'body'=>$body]);
         }
+        if (!is_uploaded_file($tmp)) {
+            fail_redirect('Ungültiger Upload.', 'compose.php',
+                ['to'=>$toUsername,'subject'=>$subject,'body'=>$body]);
+        }
         $mime = $finfo->file($tmp) ?: 'application/octet-stream';
         if (!in_array($mime, $ALLOWED_MIME, true)) {
             fail_redirect("Dateityp nicht erlaubt: „{$orig}“ ({$mime}).",
                 'compose.php', ['to'=>$toUsername,'subject'=>$subject,'body'=>$body]);
         }
 
+        // Dateiendung muss zum erkannten MIME-Typ passen (z. B. keine .php mit PNG-Header)
+        $ext = strtolower(pathinfo($orig, PATHINFO_EXTENSION));
+        if (!in_array($ext, $ALLOWED_EXT[$mime] ?? [], true)) {
+            fail_redirect("Dateiendung passt nicht zum Inhalt: „{$orig}“.",
+                'compose.php', ['to'=>$toUsername,'subject'=>$subject,'body'=>$body]);
+        }
+
+        // Originalnamen säubern (Steuerzeichen, Pfadanteile, Quotes entfernen)
+        $cleanName = preg_replace('/[\x00-\x1F\x7F"\\\\\/]/u', '_', basename($orig));
+        $cleanName = mb_substr($cleanName ?: ('file_'.$i.'.'.$ext), 0, 200);
+
         $filesOk[] = [
             'tmp'  => $tmp,
-            'orig' => basename($orig),
+            'orig' => $cleanName,
             'size' => $size,
             'mime' => $mime,
         ];
@@ -146,8 +178,9 @@ try {
     exit;
 
 } catch (Throwable $e) {
-    $conn->rollBack();
+    if ($conn->inTransaction()) { $conn->rollBack(); }
     foreach ($storedPaths as $p) { @unlink($p); }
-    fail_redirect('Fehler beim Senden: ' . htmlspecialchars($e->getMessage()),
-        'index.php', ['to'=>$toUsername,'subject'=>$subject,'body'=>$body]);
+    error_log('send_email failed: ' . $e->getMessage());
+    fail_redirect('Fehler beim Senden. Bitte erneut versuchen.',
+        'compose.php', ['to'=>$toUsername,'subject'=>$subject,'body'=>$body]);
 }

@@ -8,6 +8,7 @@ $remaining = $locked ? ($_SESSION['lock_until'] - time()) : 0;
 // Flash-Message einmalig anzeigen
 $flash = $_SESSION['flash'] ?? null;
 unset($_SESSION['flash']);
+$flashType = (is_array($flash) && ($flash['type'] ?? '') === 'error') ? 'error' : 'info';
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -26,57 +27,25 @@ unset($_SESSION['flash']);
 <body>
   <h1>Login</h1>
 
-  <?php if ($flash): ?>
-    <div class="alert <?= htmlspecialchars($flash['type']) ?>">
-      <?= htmlspecialchars($flash['text']) ?>
+  <?php if (is_array($flash)): ?>
+    <div class="alert <?= $flashType ?>">
+      <?= e($flash['text'] ?? '') ?>
     </div>
   <?php endif; ?>
 
   <?php if ($locked): ?>
-    <p class="alert error">Zu viele Loginversuche. Bitte warten: <span id="count"><?= (int)$remaining ?></span> Sekunden</p>
+    <p class="alert error">Zu viele Loginversuche. Bitte warten: <span id="count" data-remaining="<?= (int)$remaining ?>"><?= (int)$remaining ?></span> Sekunden</p>
     <p class="muted">Die Seite aktualisiert sich automatisch, sobald die Sperre vorbei ist.</p>
-
-<script>
-  let remaining = <?= (int)$remaining ?>;
-  const el = document.getElementById('count');
-  const intv = setInterval(() => {
-    remaining = Math.max(0, remaining - 1);
-    el.textContent = remaining;
-    if (remaining <= 0) {
-      clearInterval(intv);
-      location.reload();
-    }
-  }, 1000);
-
-  document.getElementById('resetBtn').addEventListener('click', async (e) => {
-    e.preventDefault();
-    try {
-      const res = await fetch('./db_queries/reset_attempts.php', {
-        method: 'POST',
-        headers: { 'Cache-Control': 'no-cache' },
-      });
-      const json = await res.json();
-      if (json.ok) {
-        clearInterval(intv);
-        location.reload();
-      } else {
-        alert('Reset fehlgeschlagen.');
-      }
-    } catch (err) {
-      alert('Error');
-    }
-  });
-</script>
-
-  <?php 
-    else: ?>
-    <form action="/db_queries/loginUser.php" method="post">
+    <script src="login.js"></script>
+  <?php else: ?>
+    <form action="/db_queries/loginUser.php" method="post" autocomplete="on">
+      <?= csrf_field() ?>
       <label>Username<br>
-        <input type="text" name="username" required>
+        <input type="text" name="username" required maxlength="100" autocomplete="username">
       </label><br><br>
 
       <label>Passwort<br>
-        <input type="password" name="password" required>
+        <input type="password" name="password" required autocomplete="current-password">
       </label><br><br>
 
       <button type="submit">Login</button>

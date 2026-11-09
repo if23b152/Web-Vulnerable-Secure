@@ -32,3 +32,13 @@ CREATE TABLE IF NOT EXISTS email_attachments (
   FOREIGN KEY (owner_id) REFERENCES user(user_id) ON DELETE CASCADE,
   INDEX (email_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS login_attempts (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  username VARCHAR(100) NOT NULL,
+  ip VARCHAR(45) NOT NULL,
+  attempted_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX (username),
+  INDEX (ip),
+  INDEX (attempted_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

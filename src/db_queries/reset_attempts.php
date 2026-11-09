@@ -1,9 +1,8 @@
 <?php
-require './cookies.php';
+// Dieser Endpoint erlaubte es jedem, die Login-Sperre ohne Authentifizierung
+// zurückzusetzen (Brute-Force-Schutz umgehbar). Er ist daher deaktiviert.
+require '../cookies.php';
 
-unset($_SESSION['loginattempt'], $_SESSION['lock_until']);
-
-$_SESSION['loginattempt'] = 0;
-
+http_response_code(410);
 header('Content-Type: application/json; charset=utf-8');
-echo json_encode(['ok' => true]);
+echo json_encode(['ok' => false, 'error' => 'disabled']);

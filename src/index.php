@@ -1,9 +1,12 @@
 <?php
 require 'cookies.php';
-  require './db_queries/db.php';
-  $username = isset($_POST['username']) ? trim($_POST['username']) : '';
-  $password = isset($_POST['password']) ? $_POST['password'] : '';
-  $email    = isset($_POST['email']) ? trim($_POST['email']) : null;
+require './db_queries/db.php';
+
+$flash = $_SESSION['flash'] ?? null;
+unset($_SESSION['flash']);
+if (is_array($flash)) {
+    $flash = $flash['text'] ?? '';
+}
 ?>
 
 <!DOCTYPE html>
@@ -18,13 +21,18 @@ require 'cookies.php';
   <h1>Hey! Try to hack this website!</h1>
   <h2>What do you want to do?</h2>
 
+  <?php if ($flash): ?>
+    <div class="alert"><?= e($flash) ?></div>
+  <?php endif; ?>
+
   <?php
     if(!empty($_SESSION['logged_in'])):
   ?>
-  <p>Username: <?php echo $_SESSION['username'];?></p>
+  <p>Username: <?= e($_SESSION['username'] ?? '') ?></p>
   <br>
-  <p>E-mail: <?php echo $_SESSION['email'];?></p>
+  <p>E-mail: <?= e($_SESSION['email'] ?? '') ?></p>
   <form action="logout.php" method="post">
+    <?= csrf_field() ?>
     <button type="submit">Log out</button>
   </form>
 

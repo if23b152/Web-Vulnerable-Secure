@@ -15,6 +15,9 @@ $options = [
 try {
   $conn = new PDO($dsn, $user, $pass, $options);
 } catch (PDOException $e) {
-  echo "Connection failed: " . $e->getMessage();
+  // Keine internen Details (Host, User, Fehlermeldung) an den Client ausgeben
+  error_log('DB connection failed: ' . $e->getMessage());
+  http_response_code(500);
+  echo 'Datenbank derzeit nicht erreichbar.';
   exit;
 }
