@@ -9,6 +9,7 @@
 ![MariaDB](https://img.shields.io/badge/MariaDB-10.11-003545?logo=mariadb&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 ![Security](https://img.shields.io/badge/Fokus-OWASP%20Top%2010-black)
+[![CI](https://github.com/if23b152/Web-Vulnerable-Secure/actions/workflows/ci.yml/badge.svg)](https://github.com/if23b152/Web-Vulnerable-Secure/actions/workflows/ci.yml)
 
 </div>
 
