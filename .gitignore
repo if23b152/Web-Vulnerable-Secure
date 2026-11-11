@@ -3,3 +3,7 @@
 .DS_Store
 .idea/
 .vscode/
+
+# Hochgeladene Anhänge (nur die Zugriffssperre wird versioniert)
+src/uploads/*
+!src/uploads/.htaccess

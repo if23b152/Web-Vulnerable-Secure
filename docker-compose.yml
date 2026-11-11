@@ -1,11 +1,9 @@
-version: '3.8'
-
 services:
   web:
     build: .
     container_name: websec_web
     ports:
-      - "127.0.0.1:8080:80"
+      - "127.0.0.1:8080:80"             # nur lokal erreichbar
     environment:
       DB_HOST: ${DB_HOST}
       DB_NAME: ${DB_NAME}
@@ -14,11 +12,13 @@ services:
       APP_UPLOAD_DIR: ${APP_UPLOAD_DIR}
       APP_BASE_URL: ${APP_BASE_URL}
     volumes:
-      - ./src:/var/www/html          # Code live mount
+      - ./src:/var/www/html             # Code live mount
       - uploads_data:${APP_UPLOAD_DIR}  # Uploads außerhalb von /var/www/html
-      - ./php.ini:/usr/local/etc/php/conf.d/custom.ini
+      - ./php.ini:/usr/local/etc/php/conf.d/custom.ini:ro
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+    restart: unless-stopped
 
   db:
     image: mariadb:10.11
@@ -32,10 +32,11 @@ services:
       - db_data:/var/lib/mysql
       - ./database/init.sql:/docker-entrypoint-initdb.d/00_init.sql:ro
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 5s
       timeout: 5s
       retries: 10
+    restart: unless-stopped
 
 volumes:
   db_data:
